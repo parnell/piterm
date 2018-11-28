@@ -1,0 +1,6 @@
+FILE=$HOME/.piterm/projects/$1.sh
+if [ ! -f $FILE ]; then
+    echo "Error: Project file '$FILE' not found!"
+    exit 1
+fi
+sh $FILE

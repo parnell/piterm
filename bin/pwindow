@@ -1,0 +1,62 @@
+if [[ $OSTYPE != *"darwin"* || ! -n "$ITERM_SESSION_ID" ]]; then
+    echo "Error: Not MacOS or not using iTerm. Exiting" >&2
+    return 1
+fi
+
+
+NAME=''
+X=100
+Y=25
+
+if [ "$#" -ge 1 ]; then NAME=$1 ; fi
+if [ "$#" -ge 2 ]; then X=$2 ; fi
+if [ "$#" -ge 3 ]; then Y=$3 ; fi
+
+echo "PROJ_NAME=${PROJECT_NAME}, $PROJECT_WINDOW_NUM"
+if [ -z "${PROJECT_WINDOW_NUM+1}" ] ; then
+    export PROJECT_WINDOW_NUM=0
+fi
+((++PROJECT_WINDOW_NUM))
+precommands=("export PROJECT_NAME=$PROJECT_NAME" \
+    "export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
+    "setupHistory"\
+    # "clear"\
+    )
+
+let i=0
+arr2=()
+if ! [ -t 0 ]; then
+    while IFS=$'\n' read -r line_data; do
+        arr2[i]="${line_data}"
+        arr[i]=1
+        ((++i))
+    done;
+fi
+combined=("${precommands[@]}" "${arr2[@]}")
+let i=${#combined[@]}-1
+arr=()
+for e in "${combined[@]}"
+do
+    arr[i]="${e}"
+    ((--i))
+done
+
+printf -v ARGS "write text \"%s\" & " "${arr[@]}"
+ARGS=${ARGS% & }
+echo "ARGS=$ARGS"
+osascript &>/dev/null <<EOF
+    tell application "iTerm"
+        activate
+        set term to create window with profile "$ITERM_PROFILE"
+        tell term
+            activate current session
+            launch session "Default Session"
+            tell the current session
+                select
+                set columns to $X
+                set rows to $Y
+                $ARGS
+            end tell
+        end tell
+    end tell
+EOF

@@ -1,0 +1,3 @@
+for f in $HOME/.piterm/projects/* ; do
+    basename $f .sh
+done

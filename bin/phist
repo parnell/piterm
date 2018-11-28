@@ -1,0 +1,8 @@
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+if [ -z "${PROJECT_NAME+1}" ] ; then
+    (>&2 echo "Error: Can't run phist. Not currently in a project")
+    exit 1
+fi
+
+python3 $DIR/print_history.py $PROJECT_NAME ''

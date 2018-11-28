@@ -1,0 +1,50 @@
+if [[ $OSTYPE != *"darwin"* || ! -n "$ITERM_SESSION_ID" ]]; then
+    echo "Error: Not MacOS or not using iTerm. Exiting" >&2
+    return 1
+fi
+
+if [[ -n $PROJECT_WINDOW_NUM ]] ; then
+    precommands=(\
+        "export PROJECT_NAME=$PROJECT_NAME" \
+        "export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
+        "setupHistory"\
+        # "clear"\
+        )
+else
+    precommands=()
+fi
+
+let i=0
+arr2=()
+if ! [ -t 0 ]; then
+    while IFS=$'\n' read -r line_data; do
+        arr2[i]="${line_data}"
+        arr[i]=1
+        ((++i))
+    done;
+fi
+combined=("${precommands[@]}" "${arr2[@]}")
+let i=${#combined[@]}-1
+arr=()
+for e in "${combined[@]}"
+do
+    arr[i]="${e}"
+    ((--i))
+done
+
+printf -v ARGS "write text \"%s\" & " "${arr[@]}"
+ARGS=${ARGS% & }
+
+
+osascript &>/dev/null <<EOF
+    tell application "iTerm"
+        tell current window
+            create tab with profile "$ITERM_PROFILE"
+            tell current session
+                select
+                $ARGS
+            end tell
+        end tell
+    end tell
+EOF
+

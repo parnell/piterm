@@ -1,0 +1,6 @@
+export PROJECT_NAME=<PROJECT_NAME>
+
+D=<PWD>
+. pwindow $PROJECT_NAME <X> <Y> <<EOF
+cd $D
+EOF
