@@ -12,15 +12,35 @@ if [ "$#" -ge 1 ]; then NAME=$1 ; fi
 if [ "$#" -ge 2 ]; then X=$2 ; fi
 if [ "$#" -ge 3 ]; then Y=$3 ; fi
 
-echo "PROJ_NAME=${PROJECT_NAME}, $PROJECT_WINDOW_NUM"
+
 if [ -z "${PROJECT_WINDOW_NUM+1}" ] ; then
     export PROJECT_WINDOW_NUM=0
 fi
 ((++PROJECT_WINDOW_NUM))
-precommands=("export PROJECT_NAME=$PROJECT_NAME" \
-    "export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
-    "setupHistory"\
-    # "clear"\
+if [ ${SHELL##*/} = "bash" ]; then
+    prec=''
+    postc=''
+elif [ ${SHELL##*/} = "zsh" ]; then
+    echo $SHELL
+    # if setopt | grep -c histignorespace ; then
+    if [[ $options[histignorespace] = on ]]; then
+        prec=''
+        postc=''
+    else
+        prec='setopt HIST_IGNORE_SPACE'
+        postc='unsetopt HIST_IGNORE_SPACE'
+    fi
+else
+    (>&2 echo "Error: current shell '$SHELL' not supported")
+    exit 1
+fi
+precommands=(\
+    "$prec"\
+    " export PROJECT_NAME=$PROJECT_NAME" \
+    " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
+    " setupHistory"\
+    " $postc"\
+    "clear"\
     )
 
 let i=0
@@ -43,7 +63,7 @@ done
 
 printf -v ARGS "write text \"%s\" & " "${arr[@]}"
 ARGS=${ARGS% & }
-echo "ARGS=$ARGS"
+
 osascript &>/dev/null <<EOF
     tell application "iTerm"
         activate

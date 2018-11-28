@@ -19,7 +19,7 @@ OF=$cdir/../projects/$PROJ.sh
 D=`pwd`
 X=`stty size | cut -d' ' -f2`
 Y=`stty size | cut -d' ' -f1`
-echo "$PROJ and $D"
+
 sed -e "s/<PROJECT_NAME>/$PROJ/g" \
     -e 's|<PWD>|'$D'|g' \
     -e "s/<X>/$X/g" \

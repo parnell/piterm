@@ -14,12 +14,13 @@ setupHistory () {
     if [[ -n $PROJECT_NAME ]] ; then
         D=${HOME}/.history/project/${PROJECT_NAME}
         mkdir -p ${D}
-        HISTFILE="${D}/${ITERM_PROFILE}.${l}.history"
+        NEWHISTFILE="${D}/${ITERM_PROFILE}.${l}.history"
     elif [[ -n $ITERM_SESSION_ID ]] ; then
         D=${HOME}/.history/profiles/${ITERM_PROFILE}
         mkdir -p ${D}
-        HISTFILE="${D}/${ITERM_PROFILE}.history"
+        NEWHISTFILE="${D}/${ITERM_PROFILE}.history"
     fi
+    HISTFILE=$NEWHISTFILE
     if [ ${SHELL##*/} = "bash" ]; then
         ## currently not working
         export SHORTHISTFILE=${HISTFILE##*bash_history.}
@@ -40,7 +41,7 @@ setupHistory () {
         # prompt_add "history -r"
         export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
     elif [ ${SHELL##*/} = "zsh" ]; then
-        # do nothing
+        fc -p $NEWHISTFILE
     fi
 }
 
