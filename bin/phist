@@ -5,4 +5,4 @@ if [ -z "${PROJECT_NAME+1}" ] ; then
     exit 1
 fi
 
-python3 $DIR/print_history.py $PROJECT_NAME ''
+python3 $DIR/print_history.py --project-name=$PROJECT_NAME --show-filenames

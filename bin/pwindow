@@ -35,12 +35,12 @@ else
     exit 1
 fi
 precommands=(\
-    "$prec"\
+    " $prec"\
     " export PROJECT_NAME=$PROJECT_NAME" \
     " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
     " setupHistory"\
     " $postc"\
-    "clear"\
+    
     )
 
 let i=0

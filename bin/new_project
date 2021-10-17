@@ -1,4 +1,4 @@
-if [ $# -ne 1 ]; then
+if [ $# -ge 3 ]; then
     echo "newproject <project_name>"
     exit 1
 fi
@@ -10,11 +10,17 @@ fi
 cdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
 PROJ=$1
-FILE=$cdir/../templates/newproject.template.txt
+if [ -z ${2+x} ]; then
+    FILE=$P_ITERM_TEMPLATES/newproject.template.txt
+else
+    FILE=$P_ITERM_TEMPLATES/$2.template.txt
+fi
+
 if [ ! -f $FILE ]; then
     echo "Error: Template file '$FILE' not found!"
     exit 1
 fi
+
 OF=$cdir/../projects/$PROJ.sh
 D=`pwd`
 X=`stty size | cut -d' ' -f2`
