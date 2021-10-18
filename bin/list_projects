@@ -1,3 +1,14 @@
-for f in $HOME/.piterm/projects/* ; do
-    basename $f .sh
-done
+F=$(dirname $1)
+D="${HOME}/.piterm/projects/$F"
+echo "$0, $1, $F, $D" >> ~/t
+# if [[ $F != "." ]] && [[ -d  $D ]]; then
+if [[ -d  $D ]]; then
+	# echo "DIR $D" >> ~/t
+	for f in ${D}/* ; do
+		echo $F/`basename $f .sh`
+	done
+else 
+	for f in $HOME/.piterm/projects/* ; do
+	    basename $f .sh
+	done
+fi

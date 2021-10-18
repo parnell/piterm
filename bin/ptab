@@ -5,10 +5,10 @@ fi
 
 if [[ -n $PROJECT_WINDOW_NUM ]] ; then
     precommands=(\
-        "export PROJECT_NAME=$PROJECT_NAME" \
-        "export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
-        "setupHistory"\
-        # "clear"\
+        " export PROJECT_NAME=$PROJECT_NAME" \
+        " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
+        " setupHistory"\
+        " clear"\
         )
 else
     precommands=()
