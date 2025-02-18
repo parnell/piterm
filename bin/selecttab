@@ -1,0 +1,17 @@
+#!/env/bin/bash
+if [ "$#" -ge 1 ]; then SELECT_TAB_NUMBER=$1 ; fi
+
+osascript &>/dev/null <<EOF
+    tell application "iTerm"
+        tell current window
+            set counter to 0
+            repeat with t in tabs
+                if (counter = $SELECT_TAB_NUMBER) then
+                    select t
+                    exit repeat
+                end if
+                set counter to counter + 1
+            end repeat
+        end tell
+    end tell
+EOF

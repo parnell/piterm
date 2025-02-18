@@ -1,5 +1,5 @@
-#expand path
-PATH="$HOME/.piterm/bin:$PATH"
+# Expand path
+PATH="$PATH:$HOME/.piterm/bin"
 
 export P_ITERM_HOME="${HOME}/.piterm"
 export P_ITERM_TEMPLATES="${P_ITERM_HOME}/templates"
@@ -12,53 +12,51 @@ alias rproj=restore_project
 alias lproj=list_projects
 alias nproj=new_project
 
-### tab completion for projects
-autoload -U +X compinit && compinit
-autoload -U +X bashcompinit && bashcompinit
+# Define the autocomplete function
+_complete_projects() {
+    # Ensure the environment variable is set
+    if [[ -z "$P_ITERM_PROJECTS_DIR" ]]; then
+        return 1
+    fi
 
-_compprojs() {
-	cd $P_ITERM_PROJECTS_DIR
-    cur=${COMP_WORDS[COMP_CWORD]}
-	ar=( $(compgen -f $P_ITERM_PROJECTS_DIR/$cur ) )
-	COMPREPLY=()
-	for c in ${ar[@]} ; do
-		if [[ -d $c ]] ; then 
-			COMPREPLY+=("$c/")
-		else
-			COMPREPLY+=("$c")
+    # Get the current word being completed
+    local cur_word
+    cur_word="${words[CURRENT]}"
+
+    # Use the find command to list all .sh project files and directories
+    local project_files directories
+    project_files=$(find "$P_ITERM_PROJECTS_DIR" -type f -name '*.sh' ! -path "$P_ITERM_PROJECTS_DIR" -print 2>/dev/null)
+    directories=$(find "$P_ITERM_PROJECTS_DIR" -type d ! -path "$P_ITERM_PROJECTS_DIR" -print 2>/dev/null)
+
+    # Extract the project names from the full paths
+    local file_names dir_names
+    file_names=()
+    dir_names=()
+    for project in ${(f)project_files}; do
+        project_name="${project#$P_ITERM_PROJECTS_DIR/}"
+		if [[ $project_name != ".sh" ]]; then
+        	file_names+=("${project_name%.sh}")
 		fi
-	done
-	COMPREPLY=("${COMPREPLY[@]%.*}")
-    return 0
+    done
+    for dir in ${(f)directories}; do
+        dir_name="${dir#$P_ITERM_PROJECTS_DIR/}"
+        dir_names+=("$dir_name")
+    done
+
+    # Filter out nested files and directories unless the parent path is typed
+    if [[ "$cur_word" == */* ]]; then
+        file_names=("${(@)file_names:#${cur_word}/*}")
+        dir_names=("${(@)dir_names:#${cur_word}/*/}")
+    else
+        file_names=("${(@)file_names:#*/*}")
+        dir_names=("${(@)dir_names:#*/*}/")
+    fi
+
+
+    _alternative \
+        'project-files:projects:(${file_names[@]})' \
+        'directories:dirs:(${dir_names[@]})'
 }
 
-complete -F _compprojs -o nospace restore_project
-complete -F _compprojs new_project
-
-fix_project(){
-	local proj=$1
-	# SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-	# echo $SCRIPT_DIR "-" ${BASH_SOURCE[0]}
-	# while true; do
-	# 	echo -n 'Attempt to fix this project script? [Yn]:'
-	# 	read yn
-	# 	case $yn in
-			# [Yy]* ) 
-				## Find path locations and check to make sure there aren't multiple projects
-				local script_loc=$(echo $funcstack | tr -s ' ' | cut -d" " -f2-)
-				local proj_loc=$(find ~/workspace -type d -name $proj)
-				local c=$(echo $proj_loc | grep -c $proj)
-				echo "is $script_loc - $c - $proj_loc"
-				if [[ $c -eq 1 ]] ; then 
-					local n_proj=$(printf '%s\n' "$script_loc" | sed -e 's/[\/&]/\\&/g')
-					echo "n = $n_proj"
-					cat $script_loc | sed -e "s/^D=.*/D=$n_proj/"
-				else 
-					echo "not 1"
-				fi
-				echo "done"
-	# 			break;;
-	# 		* ) break;;
-	# 	esac
-	# done
-}
+# Bind the function to the restore_project command
+compdef _complete_projects restore_project

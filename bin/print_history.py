@@ -81,7 +81,7 @@ def print_history(
                 if cmd_continuation:
                     cur_cmd.cmd += line
                 else:
-                    if (line.startswith(": ") or line.startswith("#")): 
+                    if (line.startswith(": ") or line.startswith("# ")): 
                         if cur_cmd:
                             cmds[cur_cmd.etime].append(cur_cmd)
                         cur_cmd = Command()
@@ -94,7 +94,7 @@ def print_history(
                         cur_cmd.cmd = cmd
                         cur_cmd.etime = etime
                         cur_cmd.type = HistoryType.zsh
-                    elif line.startswith("#"):
+                    elif line.startswith("# "):
                         etime = datetime.fromtimestamp(int(line[1:]))
                         cur_cmd.cmd = ""
                         cur_cmd.etime = etime
@@ -120,7 +120,10 @@ def print_history(
         for kt in sorted(cmds.keys()):
             cmdlist = cmds[kt]
             for cmd in cmdlist:
-                print(fstr.format(i, kt, cmd.cmd.rstrip()))
+                try:
+                    print(fstr.format(i, kt, cmd.cmd.rstrip()))
+                except:
+                    print("error on line", i, cmd)
                 i += 1
 
 

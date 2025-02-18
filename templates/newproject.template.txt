@@ -3,4 +3,12 @@ export PROJECT_NAME=<PROJECT_NAME>
 D=<PWD>
 . pwindow $PROJECT_NAME <X> <Y> <<EOF
 cd $D
+<NEW_COMMANDS>
 EOF
+
+. ptab $PROJECT_NAME <X> <Y> <<EOF
+cd $D
+<NEW_COMMANDS>
+EOF
+
+. selecttab 0

@@ -16,18 +16,29 @@ else
     FILE=$P_ITERM_TEMPLATES/$2.template.txt
 fi
 
+
 if [ ! -f $FILE ]; then
     echo "Error: Template file '$FILE' not found!"
     exit 1
 fi
 
+# If P_ITERM_NEW_COMMANDS exists, then use it, otherwise use the default
+if [ -z ${P_ITERM_NEW_COMMANDS+x} ]; then
+    P_ITERM_NEW_COMMANDS=""
+fi
+
+if [ -z ${P_ITERM_NEW_D+x} ]; then
+    P_ITERM_NEW_D=`pwd`
+fi
+
 OF=$cdir/../projects/$PROJ.sh
-D=`pwd`
+
 X=`stty size | cut -d' ' -f2`
 Y=`stty size | cut -d' ' -f1`
 
 sed -e "s/<PROJECT_NAME>/$PROJ/g" \
-    -e 's|<PWD>|'$D'|g' \
+    -e "s|<PWD>|${P_ITERM_NEW_D}|g" \
+    -e "s|<NEW_COMMANDS>|${P_ITERM_NEW_COMMANDS}|g" \
     -e "s/<X>/$X/g" \
     -e "s/<Y>/$Y/g" \
     $FILE > $OF
