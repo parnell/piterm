@@ -12,48 +12,47 @@ alias rproj=restore_project
 alias lproj=list_projects
 alias nproj=new_project
 
+# Enable menu selection for better navigation
+zstyle ':completion:*:restore_project:*' menu select
+# Enable partial word completion
+zstyle ':completion:*:restore_project:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+# Use terminal's LS_COLORS for coloring
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+# Ensure restore_project specifically uses colors
+zstyle ':completion:*:restore_project:*' list-colors ${(s.:.)LS_COLORS}
+
 # Define the autocomplete function
-_complete_projects() {
+_restore_project() {
     local curcontext="$curcontext" state line
     typeset -A opt_args
-
-    local cur="${words[CURRENT]}"
-    local projects_dir="$P_ITERM_PROJECTS_DIR"
-    local -a projects
-
-    # Function to process a directory and add its projects
-    _process_directory() {
-        local dir="$1"
-        local rel_path="${dir#$projects_dir/}"
-        
-        # Add .sh files in this directory (without the .sh extension)
-        for file in "$dir"/*.sh(N); do
-            if [[ -f "$file" ]]; then
-                local name=${file#$projects_dir/}
-                name=${name%.sh}
-                projects+=("$name")
-            fi
-        done
-        
-        # Process subdirectories
-        for subdir in "$dir"/*(/N); do
-            if [[ -d "$subdir" ]]; then
-                # Add the directory itself with a trailing slash
-                local subdir_rel="${subdir#$projects_dir/}"
-                projects+=("$subdir_rel/")
-                
-                # Process the subdirectory recursively
-                _process_directory "$subdir"
-            fi
-        done
-    }
     
-    # Start processing from the projects directory
-    _process_directory "$projects_dir"
-
-    # Complete the projects
-    _describe -t projects 'projects' projects
+    _arguments -C \
+        '1:project:->projects' \
+        '*::arg:->args'
+    
+    case $state in
+        projects)
+            local projects_dir="$P_ITERM_PROJECTS_DIR"
+            local word="$words[CURRENT]"
+            
+            # If word contains a slash, we're completing inside a directory
+            if [[ "$word" == */* ]]; then
+                local dir_part="${word%/*}"
+                local target_dir="$projects_dir/$dir_part"
+                
+                if [[ -d "$target_dir" ]]; then
+                    # Complete files and directories in the target directory
+                    _files -W "$target_dir" -g "*.sh(:r)" -P "$dir_part/"
+                    _files -W "$target_dir" -/ -P "$dir_part/"
+                fi
+            else
+                # Top level completion
+                _files -W "$projects_dir" -g "*.sh(:r)"
+                _files -W "$projects_dir" -/
+            fi
+            ;;
+    esac
 }
 
 # Bind the function to the restore_project command
-compdef _complete_projects restore_project
+compdef _restore_project restore_project
