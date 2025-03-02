@@ -14,48 +14,45 @@ alias nproj=new_project
 
 # Define the autocomplete function
 _complete_projects() {
-    # Ensure the environment variable is set
-    if [[ -z "$P_ITERM_PROJECTS_DIR" ]]; then
-        return 1
-    fi
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
 
-    # Get the current word being completed
-    local cur_word
-    cur_word="${words[CURRENT]}"
+    local cur="${words[CURRENT]}"
+    local projects_dir="$P_ITERM_PROJECTS_DIR"
+    local -a projects
 
-    # Use the find command to list all .sh project files and directories
-    local project_files directories
-    project_files=$(find "$P_ITERM_PROJECTS_DIR" -type f -name '*.sh' ! -path "$P_ITERM_PROJECTS_DIR" -print 2>/dev/null)
-    directories=$(find "$P_ITERM_PROJECTS_DIR" -type d ! -path "$P_ITERM_PROJECTS_DIR" -print 2>/dev/null)
+    # Function to process a directory and add its projects
+    _process_directory() {
+        local dir="$1"
+        local rel_path="${dir#$projects_dir/}"
+        
+        # Add .sh files in this directory (without the .sh extension)
+        for file in "$dir"/*.sh(N); do
+            if [[ -f "$file" ]]; then
+                local name=${file#$projects_dir/}
+                name=${name%.sh}
+                projects+=("$name")
+            fi
+        done
+        
+        # Process subdirectories
+        for subdir in "$dir"/*(/N); do
+            if [[ -d "$subdir" ]]; then
+                # Add the directory itself with a trailing slash
+                local subdir_rel="${subdir#$projects_dir/}"
+                projects+=("$subdir_rel/")
+                
+                # Process the subdirectory recursively
+                _process_directory "$subdir"
+            fi
+        done
+    }
+    
+    # Start processing from the projects directory
+    _process_directory "$projects_dir"
 
-    # Extract the project names from the full paths
-    local file_names dir_names
-    file_names=()
-    dir_names=()
-    for project in ${(f)project_files}; do
-        project_name="${project#$P_ITERM_PROJECTS_DIR/}"
-		if [[ $project_name != ".sh" ]]; then
-        	file_names+=("${project_name%.sh}")
-		fi
-    done
-    for dir in ${(f)directories}; do
-        dir_name="${dir#$P_ITERM_PROJECTS_DIR/}"
-        dir_names+=("$dir_name")
-    done
-
-    # Filter out nested files and directories unless the parent path is typed
-    if [[ "$cur_word" == */* ]]; then
-        file_names=("${(@)file_names:#${cur_word}/*}")
-        dir_names=("${(@)dir_names:#${cur_word}/*/}")
-    else
-        file_names=("${(@)file_names:#*/*}")
-        dir_names=("${(@)dir_names:#*/*}/")
-    fi
-
-
-    _alternative \
-        'project-files:projects:(${file_names[@]})' \
-        'directories:dirs:(${dir_names[@]})'
+    # Complete the projects
+    _describe -t projects 'projects' projects
 }
 
 # Bind the function to the restore_project command
