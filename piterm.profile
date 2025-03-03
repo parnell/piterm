@@ -34,64 +34,34 @@ _restore_project() {
         projects)
             local projects_dir="$P_ITERM_PROJECTS_DIR"
             local word="$words[CURRENT]"
+            local target_dir="$projects_dir"
+            local prefix=""
             
-            # If word contains a slash, we're completing inside a directory
+            # If word contains a slash, we're completing inside a subdirectory
             if [[ "$word" == */* ]]; then
                 local dir_part="${word%/*}"
-                local file_part="${word##*/}"
-                local target_dir="$projects_dir/$dir_part"
-                
-                if [[ -d "$target_dir" ]]; then
-                    # Set up tags for different types of completions
-                    _tags directories projects
-                    
-                    # Handle directories
-                    if _requested directories; then
-                        # Use _path_files for consistent coloring with LS_COLORS
-                        _path_files -W "$target_dir" -/ -q -P "$dir_part/"
-                    fi
-                    
-                    # Handle .sh files
-                    if _requested projects; then
-                        local -a project_files=()
-                        for file in "$target_dir"/*.sh(N); do
-                            local basename=${file:t:r}
-                            # Skip if there's a directory with the same name
-                            if [[ ! -d "$target_dir/$basename" ]]; then
-                                # Just add the basename without the directory prefix
-                                project_files+=("$basename")
-                            fi
-                        done
-                        
-                        if [[ ${#project_files} -gt 0 ]]; then
-                            # Use -q to strip the prefix from displayed completions
-                            compadd -q -P "$dir_part/" -o nosort -X "Projects" -a project_files
-                        fi
-                    fi
-                fi
-            else
-                # Set up tags for different types of completions
+                target_dir="$projects_dir/$dir_part"
+                prefix="$dir_part/"
+            fi
+            
+            if [[ -d "$target_dir" ]]; then
                 _tags directories projects
                 
                 # Handle directories
                 if _requested directories; then
-                    _path_files -W "$projects_dir" -/
+                    _path_files -W "$target_dir" -/ -q -P "$prefix"
                 fi
                 
-                # Handle .sh files
+                # Handle .sh files (projects)
                 if _requested projects; then
                     local -a project_files=()
-                    for file in "$projects_dir"/*.sh(N); do
+                    for file in "$target_dir"/*.sh(N); do
                         local basename=${file:t:r}
                         # Skip if there's a directory with the same name
-                        if [[ ! -d "$projects_dir/$basename" ]]; then
-                            project_files+=("$basename")
-                        fi
+                        [[ ! -d "$target_dir/$basename" ]] && project_files+=("$basename")
                     done
                     
-                    if [[ ${#project_files} -gt 0 ]]; then
-                        compadd -o nosort -X "Projects" -a project_files
-                    fi
+                    [[ ${#project_files} -gt 0 ]] && compadd -q -P "$prefix" -o nosort -X "Projects" -a project_files
                 fi
             fi
             ;;
