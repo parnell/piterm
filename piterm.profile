@@ -41,14 +41,50 @@ _restore_project() {
                 local target_dir="$projects_dir/$dir_part"
                 
                 if [[ -d "$target_dir" ]]; then
-                    # Complete files and directories in the target directory
-                    _files -W "$target_dir" -g "*.sh(:r)" -P "$dir_part/"
-                    _files -W "$target_dir" -/ -P "$dir_part/"
+                    # Set up tags for different types of completions
+                    _tags directories projects
+                    
+                    # Handle directories
+                    if _requested directories; then
+                        _path_files -W "$target_dir" -/ -P "$dir_part/"
+                    fi
+                    
+                    # Handle .sh files
+                    if _requested projects; then
+                        local -a project_files=()
+                        for file in "$target_dir"/*.sh(N); do
+                            local basename=${file:t:r}
+                            # Skip if there's a directory with the same name
+                            if [[ ! -d "$target_dir/$basename" ]]; then
+                                project_files+=("$dir_part/$basename")
+                            fi
+                        done
+                        
+                        [[ ${#project_files} -gt 0 ]] && compadd "$@" -a project_files
+                    fi
                 fi
             else
-                # Top level completion
-                _files -W "$projects_dir" -g "*.sh(:r)"
-                _files -W "$projects_dir" -/
+                # Set up tags for different types of completions
+                _tags directories projects
+                
+                # Handle directories
+                if _requested directories; then
+                    _path_files -W "$projects_dir" -/
+                fi
+                
+                # Handle .sh files
+                if _requested projects; then
+                    local -a project_files=()
+                    for file in "$projects_dir"/*.sh(N); do
+                        local basename=${file:t:r}
+                        # Skip if there's a directory with the same name
+                        if [[ ! -d "$projects_dir/$basename" ]]; then
+                            project_files+=("$basename")
+                        fi
+                    done
+                    
+                    [[ ${#project_files} -gt 0 ]] && compadd "$@" -a project_files
+                fi
             fi
             ;;
     esac
