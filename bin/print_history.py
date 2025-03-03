@@ -47,7 +47,7 @@ def print_history(
             glob.iglob(os.path.expanduser(f"~/.history/**"), recursive=True),
         )
     elif pname:
-        files = glob.iglob(os.path.expanduser(f"~/.history/project/{pname}"), recursive=True)
+        files = glob.iglob(os.path.expanduser(f"~/.history/project/{pname}/*"), recursive=False)
     elif iterm_profile:
         files = glob.iglob(
             os.path.expanduser(f"~/.history/profiles/{iterm_profile}"), recursive=True
