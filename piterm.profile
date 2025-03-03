@@ -38,6 +38,7 @@ _restore_project() {
             # If word contains a slash, we're completing inside a directory
             if [[ "$word" == */* ]]; then
                 local dir_part="${word%/*}"
+                local file_part="${word##*/}"
                 local target_dir="$projects_dir/$dir_part"
                 
                 if [[ -d "$target_dir" ]]; then
@@ -46,7 +47,8 @@ _restore_project() {
                     
                     # Handle directories
                     if _requested directories; then
-                        _path_files -W "$target_dir" -/ -P "$dir_part/"
+                        # Use _path_files for consistent coloring with LS_COLORS
+                        _path_files -W "$target_dir" -/ -q -P "$dir_part/"
                     fi
                     
                     # Handle .sh files
@@ -56,11 +58,15 @@ _restore_project() {
                             local basename=${file:t:r}
                             # Skip if there's a directory with the same name
                             if [[ ! -d "$target_dir/$basename" ]]; then
-                                project_files+=("$dir_part/$basename")
+                                # Just add the basename without the directory prefix
+                                project_files+=("$basename")
                             fi
                         done
                         
-                        [[ ${#project_files} -gt 0 ]] && compadd "$@" -a project_files
+                        if [[ ${#project_files} -gt 0 ]]; then
+                            # Use -q to strip the prefix from displayed completions
+                            compadd -q -P "$dir_part/" -o nosort -X "Projects" -a project_files
+                        fi
                     fi
                 fi
             else
@@ -83,7 +89,9 @@ _restore_project() {
                         fi
                     done
                     
-                    [[ ${#project_files} -gt 0 ]] && compadd "$@" -a project_files
+                    if [[ ${#project_files} -gt 0 ]]; then
+                        compadd -o nosort -X "Projects" -a project_files
+                    fi
                 fi
             fi
             ;;
