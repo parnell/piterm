@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import patch
 
-import pytest
-from print_history import Command, HistoryType, print_history
+import pytest # type: ignore
+from print_history import Command, HistoryType, print_history # type: ignore
 
 # Add the bin directory to the path so we can import print_history
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../bin')))
