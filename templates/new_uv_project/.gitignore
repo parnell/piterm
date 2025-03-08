@@ -16,10 +16,6 @@ docker_staging*
 ## System
 .env
 
-## Poetry
-.poetry.toml
-poetry.toml
-
 ## Python
 __pycache__
 .installed.cfg
@@ -59,5 +55,6 @@ cachedir
 .private
 *.bk.*
 * copy.py
+
 ## vscode
 .vscode
