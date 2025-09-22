@@ -13,10 +13,8 @@ if [ "$#" -ge 2 ]; then X=$2 ; fi
 if [ "$#" -ge 3 ]; then Y=$3 ; fi
 
 
-if [ -z "${PROJECT_WINDOW_NUM+1}" ] ; then
-    export PROJECT_WINDOW_NUM=0
-fi
-((++PROJECT_WINDOW_NUM))
+# Simple: assume 1 window per project
+export PROJECT_WINDOW_NUM=1
 if [ ${SHELL##*/} = "bash" ]; then
     prec=''
     postc=''
