@@ -31,6 +31,13 @@ if [ -z ${P_ITERM_NEW_D+x} ]; then
     P_ITERM_NEW_D=`pwd`
 fi
 
+# Check if the project directory already exists with a .git folder
+# If so, don't copy template files
+if [ -d "$P_ITERM_NEW_D/$PROJ/.git" ]; then
+    echo "Project directory '$PROJ' already exists with .git - skipping template file copy"
+    P_ITERM_NEW_COMMANDS=""
+fi
+
 OF=$cdir/../projects/$PROJ.sh
 
 X=`stty size | cut -d' ' -f2`
