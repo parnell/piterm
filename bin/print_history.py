@@ -115,10 +115,13 @@ def print_history(
             if not ignore_errors:
                 raise
         if show_filenames:
-            if color:
-                print(f"{bcolors.GREEN}{filename}{bcolors.ENDC}")
-            else:
-                print(filename)
+            try:
+                if color:
+                    print(f"{bcolors.GREEN}{filename}{bcolors.ENDC}")
+                else:
+                    print(filename)
+            except BrokenPipeError:
+                sys.exit(0)
 
         # example hist
         #    1  2018-11-21 15:19:43  history
@@ -130,6 +133,8 @@ def print_history(
             for cmd_obj in cmdlist:
                 try:
                     print(fstr.format(i, kt, cmd_obj.cmd.rstrip()))
+                except BrokenPipeError:
+                    sys.exit(0)
                 except Exception:
                     print("error on line", i, cmd_obj)
                 i += 1
@@ -158,11 +163,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print_history(
-        args.project_name,
-        args.iterm_profile,
-        all_history=args.all_history,
-        show_filenames=args.show_filenames,
-        color=args.force_color or args.fc or use_color,
-        ignore_errors=args.ignore_errors,
-    )
+    try:
+        print_history(
+            args.project_name,
+            args.iterm_profile,
+            all_history=args.all_history,
+            show_filenames=args.show_filenames,
+            color=args.force_color or args.fc or use_color,
+            ignore_errors=args.ignore_errors,
+        )
+    except BrokenPipeError:
+        # Broken pipe is normal when piping to commands that exit early (e.g., grep with errors)
+        sys.exit(0)
