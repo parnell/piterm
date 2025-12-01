@@ -1,4 +1,7 @@
-FILE=$HOME/.piterm/projects/$1.sh
+PROJECTS_DIR="${P_ITERM_PROJECTS_DIR:-${HOME}/.piterm/projects}"
+PROJECTS_DIR="${PROJECTS_DIR/#\~/$HOME}"
+
+FILE=$PROJECTS_DIR/$1.sh
 if [ ! -f $FILE ]; then
     echo "Error: Project file '$FILE' not found!"
     exit 1

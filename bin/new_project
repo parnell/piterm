@@ -7,7 +7,8 @@ if [ -f "$1" ]; then
     exit 1
 fi
 
-cdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+PROJECTS_DIR="${P_ITERM_PROJECTS_DIR:-${HOME}/.piterm/projects}"
+PROJECTS_DIR="${PROJECTS_DIR/#\~/$HOME}"
 
 PROJ=$1
 if [ -z ${2+x} ]; then
@@ -38,7 +39,7 @@ if [ -d "$P_ITERM_NEW_D/$PROJ/.git" ]; then
     P_ITERM_NEW_COMMANDS=""
 fi
 
-OF=$cdir/../projects/$PROJ.sh
+OF=$PROJECTS_DIR/$PROJ.sh
 
 X=`stty size | cut -d' ' -f2`
 Y=`stty size | cut -d' ' -f1`

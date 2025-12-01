@@ -3,7 +3,7 @@ PATH="$PATH:$HOME/.piterm/bin"
 
 export P_ITERM_HOME="${HOME}/.piterm"
 export P_ITERM_TEMPLATES="${P_ITERM_HOME}/templates"
-export P_ITERM_PROJECTS_DIR="${P_ITERM_HOME}/projects"
+export P_ITERM_PROJECTS_DIR="${P_ITERM_PROJECTS_DIR:-${P_ITERM_HOME}/projects}"
 export P_ITERM_WORKSPACE_DIR="${HOME}/workspace"
 
 source "${P_ITERM_HOME}/advanced_history.profile"
@@ -68,5 +68,6 @@ _restore_project() {
     esac
 }
 
-# Bind the function to the restore_project command
+# Bind the function to the restore_project command and its alias
 compdef _restore_project restore_project
+compdef _restore_project rproj

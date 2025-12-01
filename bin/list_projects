@@ -1,5 +1,8 @@
+PROJECTS_DIR="${P_ITERM_PROJECTS_DIR:-${HOME}/.piterm/projects}"
+PROJECTS_DIR="${PROJECTS_DIR/#\~/$HOME}"
+
 F=$(dirname $1)
-D="${HOME}/.piterm/projects/$F"
+D="${PROJECTS_DIR}/$F"
 echo "$0, $1, $F, $D" >> ~/t
 # if [[ $F != "." ]] && [[ -d  $D ]]; then
 if [[ -d  $D ]]; then
@@ -8,7 +11,7 @@ if [[ -d  $D ]]; then
 		echo $F/`basename $f .sh`
 	done
 else 
-	for f in $HOME/.piterm/projects/* ; do
+	for f in ${PROJECTS_DIR}/* ; do
 	    basename $f .sh
 	done
 fi
