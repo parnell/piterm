@@ -40,12 +40,16 @@ def print_history(
     pname: Optional[str] = None,
     iterm_profile: Optional[str] = None,
     all_history: Optional[bool] = None,
+    histfile: Optional[str] = None,
     show_filenames: bool = False,
     color: bool = False,
     ignore_errors: bool = False,
 ) -> None:
-    if all_history:
-        files: Iterator[str] = chain(
+    if histfile:
+        # Single file mode for tab history
+        files: Iterator[str] = iter([os.path.expanduser(histfile)])
+    elif all_history:
+        files = chain(
             glob.iglob(os.path.expanduser("~/.zsh_history")),
             glob.iglob(os.path.expanduser("~/.bash_history")),
             glob.iglob(os.path.expanduser("~/.history/**"), recursive=True),
@@ -149,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--show-filenames", action="store_true", help="show filenames")
     parser.add_argument("--project-name", help="specify a project name")
     parser.add_argument("--iterm-profile", help="specify the profile")
+    parser.add_argument("--histfile", help="specify a specific history file to read")
     parser.add_argument(
         "--ignore-errors",
         action="store_true",
@@ -168,6 +173,7 @@ if __name__ == "__main__":
             args.project_name,
             args.iterm_profile,
             all_history=args.all_history,
+            histfile=args.histfile,
             show_filenames=args.show_filenames,
             color=args.force_color or args.fc or use_color,
             ignore_errors=args.ignore_errors,

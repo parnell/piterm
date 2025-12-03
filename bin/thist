@@ -1,0 +1,16 @@
+#!/bin/bash
+# thist - show history for the current tab only
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+if [ -z "${HISTFILE}" ] ; then
+    (>&2 echo "Error: HISTFILE is not set")
+    exit 1
+fi
+
+if [ ! -f "${HISTFILE}" ] ; then
+    (>&2 echo "Error: History file does not exist: ${HISTFILE}")
+    exit 1
+fi
+
+python3 $DIR/print_history.py --histfile="$HISTFILE" $@
+
