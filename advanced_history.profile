@@ -17,9 +17,16 @@ waitForSessionId() {
 
 setupHistory () {
     # Save current history before switching (failsafe against history loss)
-    if [ ${SHELL##*/} = "zsh" ] && [ -n "$HISTFILE" ] && [ -f "$HISTFILE" ]; then
-        # Try to write history, but don't fail if fc -W isn't available
-        fc -W 2>/dev/null || true  # Write current history to disk
+    if [ ${SHELL##*/} = "zsh" ] && [ -n "$HISTFILE" ]; then
+        # CRITICAL: Use fc -A to append ALL in-memory history to the file
+        # fc -W only writes what's already been saved, but fc -A ensures
+        # all in-memory commands (including the most recent) are preserved
+        if [ -f "$HISTFILE" ]; then
+            fc -A "$HISTFILE" 2>/dev/null || true  # Append all in-memory history
+        else
+            # If file doesn't exist yet, create it and write current history
+            fc -W 2>/dev/null || true
+        fi
     fi
     
     # Wait for ITERM_SESSION_ID if we're using per-tab history and it's not set
@@ -82,7 +89,10 @@ setupHistory () {
         return 1
     fi
 
+    # Only switch history file if it's different from current
+    OLDHISTFILE="${HISTFILE:-}"
     export HISTFILE=$NEWHISTFILE
+    
     if [ ${SHELL##*/} = "bash" ]; then
         ### currently not working
         export SHORTHISTFILE=${HISTFILE##*bash_history.}
@@ -124,13 +134,27 @@ setupHistory () {
         setopt HIST_REDUCE_BLANKS   # remove extra whitespace from commands
         setopt HIST_SAVE_NO_DUPS    # don't save duplicate entries to history file
         
-        # Use fc -p to switch history file (this preserves in-memory history)
-        # fc -p loads existing history from the file if it exists
-        fc -p $HISTFILE $HISTSIZE $SAVEHIST
-        
-        # Force immediate write to ensure any pending history is saved
-        # With INC_APPEND_HISTORY, history is written automatically, but this ensures it
-        fc -W 2>/dev/null || true
+        # Use fc -p to switch history file
+        # NOTE: fc -p REPLACES in-memory history with what's in the file
+        # This is why we use fc -A above to ensure all in-memory history is saved first
+        # Only switch if we're changing to a different file
+        if [[ "$OLDHISTFILE" != "$HISTFILE" ]]; then
+            # Switch to new history file - this loads the file's history into memory
+            fc -p $HISTFILE $HISTSIZE $SAVEHIST
+            
+            # CRITICAL: After switching files, explicitly reload to ensure all history
+            # from the file is in memory for bck-i-search
+            # fc -R reads the history file and merges it with in-memory history
+            # This is necessary because fc -p might not load everything, or there might
+            # be timing issues with file writes
+            if [[ -f "$HISTFILE" ]]; then
+                fc -R "$HISTFILE" 2>/dev/null || true
+            fi
+        else
+            # Same file - just ensure any pending writes are flushed
+            # INC_APPEND_HISTORY should handle adding new commands to memory automatically
+            fc -W 2>/dev/null || true
+        fi
     fi
 }
 
@@ -139,8 +163,13 @@ if [ ${SHELL##*/} = "zsh" ]; then
     zshexit() {
         # Save history when shell exits
         if [[ -n "$HISTFILE" ]]; then
-            # Try to write history, but don't fail if fc -W isn't available
-            fc -W 2>/dev/null || true
+            # Use fc -A to ensure ALL in-memory history is saved, even if INC_APPEND_HISTORY
+            # didn't catch everything (e.g., if shell exits abruptly)
+            if [[ -f "$HISTFILE" ]]; then
+                fc -A "$HISTFILE" 2>/dev/null || true
+            else
+                fc -W 2>/dev/null || true
+            fi
         fi
     }
 fi
