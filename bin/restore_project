@@ -1,9 +1,19 @@
 PROJECTS_DIR="${P_ITERM_PROJECTS_DIR:-${HOME}/.piterm/projects}"
 PROJECTS_DIR="${PROJECTS_DIR/#\~/$HOME}"
 
-FILE=$PROJECTS_DIR/$1.sh
-if [ ! -f $FILE ]; then
-    echo "Error: Project file '$FILE' not found!"
-    exit 1
+if [ -z "$1" ]; then
+    echo "Usage: rproj <project-name>" >&2
+    return 1 2>/dev/null || exit 1
 fi
-sh $FILE
+
+FILE="${PROJECTS_DIR}/$1.sh"
+if [ ! -f "$FILE" ]; then
+    echo "Error: Project file '$FILE' not found!" >&2
+    return 1 2>/dev/null || exit 1
+fi
+
+# Default profile name to the selected project.
+export ITERM_PROFILE="${1##*/}"
+
+# Source project script so environment updates are visible in current shell.
+. "$FILE"

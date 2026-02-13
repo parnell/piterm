@@ -8,7 +8,9 @@ export P_ITERM_WORKSPACE_DIR="${HOME}/workspace"
 
 source "${P_ITERM_HOME}/advanced_history.profile"
 
-alias rproj=restore_project
+function rproj() {
+    . "${P_ITERM_HOME}/bin/restore_project" "$@"
+}
 alias lproj=list_projects
 alias nproj=new_project
 

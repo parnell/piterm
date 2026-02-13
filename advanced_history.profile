@@ -58,7 +58,9 @@ setupHistory () {
             # Use the full session ID part for uniqueness across tabs
             # CRITICAL FIX: Check if ITERM_SESSION_ID is set before using it
             if [[ -n $ITERM_SESSION_ID ]]; then
-                SESSION_PART=$(echo $ITERM_SESSION_ID| cut -d':' -f 1)
+                SESSION_PART=$(echo $ITERM_SESSION_ID | cut -d':' -f 1)
+                # Projects always use a single logical window index.
+                SESSION_PART=$(echo "$SESSION_PART" | sed -E 's/^w[0-9]+/w0/')
                 NEWHISTFILE="${D}/${ITERM_PROFILE}.${SESSION_PART}.history"
             else
                 # Fallback: use timestamp + random to avoid collisions
@@ -68,7 +70,10 @@ setupHistory () {
         elif [[ -n $ITERM_SESSION_ID ]] ; then
             D=${HOME}/.history/profiles/${ITERM_PROFILE}
             mkdir -p ${D}
-            SESSION_PART=$(echo $ITERM_SESSION_ID| cut -d':' -f 1)
+            SESSION_PART=$(echo $ITERM_SESSION_ID | cut -d':' -f 1)
+            if [[ -n $PROJECT_WINDOW_NUM ]]; then
+                SESSION_PART=$(echo "$SESSION_PART" | sed -E "s/^w[0-9]+/w${PROJECT_WINDOW_NUM}/")
+            fi
             NEWHISTFILE="${D}/${ITERM_PROFILE}.${SESSION_PART}.history"
         fi
     else

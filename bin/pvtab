@@ -8,6 +8,7 @@ NAME=''
 if [ "$#" -eq 1 ]; then NAME=$1; fi
 if [[ -n $PROJECT_WINDOW_NUM ]] ; then
     precommands=(" export PROJECT_NAME=$PROJECT_NAME" \
+        " export ITERM_PROFILE=$ITERM_PROFILE" \
         " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
         " setupHistory"\
         " clear"\
@@ -16,22 +17,17 @@ else
     precommands=()
 fi
 
-let i=0
 arr2=()
 if ! [ -t 0 ]; then
     while IFS=$'\n' read -r line_data; do
-        arr2[i]="${line_data}"
-        arr[i]=1
-        ((++i))
+        arr2+=("${line_data}")
     done;
 fi
 combined=("${precommands[@]}" "${arr2[@]}")
-let i=${#combined[@]}-1
 arr=()
 for e in "${combined[@]}"
 do
-    arr[i]="${e}"
-    ((--i))
+    arr=("${e}" "${arr[@]}")
 done
 
 printf -v ARGS "write text \"%s\" & " "${arr[@]}"

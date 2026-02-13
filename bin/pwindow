@@ -13,13 +13,12 @@ if [ "$#" -ge 2 ]; then X=$2 ; fi
 if [ "$#" -ge 3 ]; then Y=$3 ; fi
 
 
-# Simple: assume 1 window per project
-export PROJECT_WINDOW_NUM=1
+# Simple: assume first project window (0-based)
+export PROJECT_WINDOW_NUM=0
 if [ ${SHELL##*/} = "bash" ]; then
     prec=''
     postc=''
 elif [ ${SHELL##*/} = "zsh" ]; then
-    echo $SHELL
     # if setopt | grep -c histignorespace ; then
     if [[ $options[histignorespace] = on ]]; then
         prec=''
@@ -35,37 +34,34 @@ fi
 precommands=(\
     " $prec"\
     " export PROJECT_NAME=$PROJECT_NAME" \
+    " export ITERM_PROFILE=$ITERM_PROFILE" \
     " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
     " setupHistory"\
     " $postc"\
     
     )
 
-let i=0
 arr2=()
 if ! [ -t 0 ]; then
     while IFS=$'\n' read -r line_data; do
-        arr2[i]="${line_data}"
-        arr[i]=1
-        ((++i))
+        arr2+=("${line_data}")
     done;
 fi
 combined=("${precommands[@]}" "${arr2[@]}")
-let i=${#combined[@]}-1
 arr=()
 for e in "${combined[@]}"
 do
-    arr[i]="${e}"
-    ((--i))
+    arr=("${e}" "${arr[@]}")
 done
 
 printf -v ARGS "write text \"%s\" & " "${arr[@]}"
 ARGS=${ARGS% & }
 
-osascript &>/dev/null <<EOF
+TARGET_PROFILE="${ITERM_PROFILE:-Default}"
+if ! osascript >/dev/null 2>&1 <<EOF
     tell application "iTerm"
         activate
-        set term to create window with profile "$ITERM_PROFILE"
+        set term to create window with profile "$TARGET_PROFILE"
         tell term
             activate current session
             launch session "Default Session"
@@ -78,3 +74,22 @@ osascript &>/dev/null <<EOF
         end tell
     end tell
 EOF
+then
+    # Fallback when custom profile does not exist in iTerm.
+    osascript >/dev/null 2>&1 <<EOF
+    tell application "iTerm"
+        activate
+        set term to create window with profile "Default"
+        tell term
+            activate current session
+            launch session "Default Session"
+            tell the current session
+                select
+                set columns to $X
+                set rows to $Y
+                $ARGS
+            end tell
+        end tell
+    end tell
+EOF
+fi
