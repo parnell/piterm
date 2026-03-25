@@ -38,7 +38,7 @@ precommands=(\
     " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
     " setupHistory"\
     " $postc"\
-    
+    " clear"\
     )
 
 arr2=()
