@@ -130,6 +130,7 @@ setupHistory () {
         # Configure zsh history options BEFORE switching files
         # This ensures INC_APPEND_HISTORY is set before we switch
         unsetopt SHARE_HISTORY      # don't share history between sessions
+        setopt EXTENDED_HISTORY     # write timestamps so entries can be sorted chronologically
         setopt INC_APPEND_HISTORY   # append history immediately after each command
         setopt HIST_IGNORE_DUPS     # no consecutive duplications
         setopt HIST_IGNORE_ALL_DUPS # remove older duplicate entries
@@ -139,25 +140,13 @@ setupHistory () {
         setopt HIST_REDUCE_BLANKS   # remove extra whitespace from commands
         setopt HIST_SAVE_NO_DUPS    # don't save duplicate entries to history file
         
-        # Use fc -p to switch history file
-        # NOTE: fc -p REPLACES in-memory history with what's in the file
-        # This is why we use fc -A above to ensure all in-memory history is saved first
-        # Only switch if we're changing to a different file
         if [[ "$OLDHISTFILE" != "$HISTFILE" ]]; then
-            # Switch to new history file - this loads the file's history into memory
             fc -p $HISTFILE $HISTSIZE $SAVEHIST
             
-            # CRITICAL: After switching files, explicitly reload to ensure all history
-            # from the file is in memory for bck-i-search
-            # fc -R reads the history file and merges it with in-memory history
-            # This is necessary because fc -p might not load everything, or there might
-            # be timing issues with file writes
             if [[ -f "$HISTFILE" ]]; then
                 fc -R "$HISTFILE" 2>/dev/null || true
             fi
         else
-            # Same file - just ensure any pending writes are flushed
-            # INC_APPEND_HISTORY should handle adding new commands to memory automatically
             fc -W 2>/dev/null || true
         fi
     fi

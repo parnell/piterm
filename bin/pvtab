@@ -10,9 +10,7 @@ if [[ -n $PROJECT_WINDOW_NUM ]] ; then
     precommands=(" export PROJECT_NAME=$PROJECT_NAME" \
         " export ITERM_PROFILE=$ITERM_PROFILE" \
         " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
-        " setupHistory"\
-        " clear"\
-        )
+        " setupHistory")
 else
     precommands=()
 fi
@@ -23,7 +21,7 @@ if ! [ -t 0 ]; then
         arr2+=("${line_data}")
     done;
 fi
-combined=("${precommands[@]}" "${arr2[@]}")
+combined=("${precommands[@]}" "${arr2[@]}" " clear")
 arr=()
 for e in "${combined[@]}"
 do

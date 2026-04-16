@@ -38,7 +38,6 @@ precommands=(\
     " export PROJECT_WINDOW_NUM=$PROJECT_WINDOW_NUM" \
     " setupHistory"\
     " $postc"\
-    " clear"\
     )
 
 arr2=()
@@ -47,7 +46,7 @@ if ! [ -t 0 ]; then
         arr2+=("${line_data}")
     done;
 fi
-combined=("${precommands[@]}" "${arr2[@]}")
+combined=("${precommands[@]}" "${arr2[@]}" " clear")
 arr=()
 for e in "${combined[@]}"
 do
