@@ -16,15 +16,13 @@ waitForSessionId() {
 }
 
 setupHistory () {
-    # Save current history before switching (failsafe against history loss)
+    # Flush only events not yet written. fc -A appends the whole ring, so it
+    # duplicates lines INC_APPEND_HISTORY already saved. fc -AI writes the
+    # unsaved tail. fc -W creates a file that does not exist yet.
     if [ ${SHELL##*/} = "zsh" ] && [ -n "$HISTFILE" ]; then
-        # CRITICAL: Use fc -A to append ALL in-memory history to the file
-        # fc -W only writes what's already been saved, but fc -A ensures
-        # all in-memory commands (including the most recent) are preserved
         if [ -f "$HISTFILE" ]; then
-            fc -A "$HISTFILE" 2>/dev/null || true  # Append all in-memory history
+            fc -AI "$HISTFILE" 2>/dev/null || true
         else
-            # If file doesn't exist yet, create it and write current history
             fc -W 2>/dev/null || true
         fi
     fi
@@ -127,27 +125,24 @@ setupHistory () {
         export HISTSIZE=100000
         export SAVEHIST=100000
         
-        # Configure zsh history options BEFORE switching files
-        # This ensures INC_APPEND_HISTORY is set before we switch
-        unsetopt SHARE_HISTORY      # don't share history between sessions
-        setopt EXTENDED_HISTORY     # write timestamps so entries can be sorted chronologically
-        setopt INC_APPEND_HISTORY   # append history immediately after each command
-        setopt HIST_IGNORE_DUPS     # no consecutive duplications
-        setopt HIST_IGNORE_ALL_DUPS # remove older duplicate entries
-        setopt HIST_FIND_NO_DUPS    # don't show duplicates in history search
-        setopt HIST_NO_STORE        # don't store "history" commands
-        setopt HIST_IGNORE_SPACE    # don't store commands prefixed with space
-        setopt HIST_REDUCE_BLANKS   # remove extra whitespace from commands
-        setopt HIST_SAVE_NO_DUPS    # don't save duplicate entries to history file
-        
+        # Configure zsh history options BEFORE switching files.
+        # The ring Up walks and the file thist reads stay aligned only when
+        # every saved line is appended and nothing reorders the ring afterward.
+        unsetopt SHARE_HISTORY
+        setopt APPEND_HISTORY
+        setopt EXTENDED_HISTORY
+        setopt INC_APPEND_HISTORY
+        setopt HIST_IGNORE_DUPS       # skip a command only when it repeats the previous one
+        unsetopt HIST_IGNORE_ALL_DUPS # would move older copies in memory and leave them in the file
+        setopt HIST_FIND_NO_DUPS
+        setopt HIST_NO_STORE
+        setopt HIST_IGNORE_SPACE
+        setopt HIST_REDUCE_BLANKS
+        unsetopt HIST_SAVE_NO_DUPS    # a later rewrite must not drop lines the ring still has
+
+        # fc -p reads the file into the new ring. fc -R afterward loads it again.
         if [[ "$OLDHISTFILE" != "$HISTFILE" ]]; then
-            fc -p $HISTFILE $HISTSIZE $SAVEHIST
-            
-            if [[ -f "$HISTFILE" ]]; then
-                fc -R "$HISTFILE" 2>/dev/null || true
-            fi
-        else
-            fc -W 2>/dev/null || true
+            fc -p "$HISTFILE" "$HISTSIZE" "$SAVEHIST"
         fi
     fi
 }
@@ -155,12 +150,11 @@ setupHistory () {
 # Add exit hook for zsh to save history when shell exits
 if [ ${SHELL##*/} = "zsh" ]; then
     zshexit() {
-        # Save history when shell exits
+        # fc -A would append a second copy of the ring. fc -AI writes only
+        # events that are not already in the file.
         if [[ -n "$HISTFILE" ]]; then
-            # Use fc -A to ensure ALL in-memory history is saved, even if INC_APPEND_HISTORY
-            # didn't catch everything (e.g., if shell exits abruptly)
             if [[ -f "$HISTFILE" ]]; then
-                fc -A "$HISTFILE" 2>/dev/null || true
+                fc -AI "$HISTFILE" 2>/dev/null || true
             else
                 fc -W 2>/dev/null || true
             fi

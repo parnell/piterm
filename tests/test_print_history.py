@@ -47,6 +47,44 @@ class TestPrintHistory:
         assert cmd.rtime == ""
         assert cmd.cmd == ""
     
+    def test_zsh_multiline_matches_stored_command(self, tmp_path: Any, capsys: Any) -> None:
+        """Backslash-newline in the file is a newline in the command Up recalls."""
+        hist = tmp_path / "tab.history"
+        hist.write_text(
+            ": 1790781483:0;echo hello" + "\\\\\\" + "\n"
+            "world\n"
+            ": 1790781483:0;echo 'hello" + "\\" + "\n"
+            "world'\n"
+            ": 1790781483:0;: not a header\n"
+        )
+        print_history(histfile=str(hist), color=False)
+        output = capsys.readouterr().out
+        assert "echo hello\\\nworld" in output
+        assert "echo 'hello\nworld'" in output
+        assert ": not a header" in output
+        assert output.index("echo hello") < output.index(": not a header")
+
+    def test_histfile_keeps_file_order(self, tmp_path: Any, capsys: Any) -> None:
+        hist = tmp_path / "tab.history"
+        hist.write_text(
+            ": 300:0;third\n"
+            ": 100:0;first\n"
+            ": 200:0;second\n"
+        )
+        print_history(histfile=str(hist), color=False)
+        output = capsys.readouterr().out
+        assert output.index("third") < output.index("first") < output.index("second")
+
+    def test_bash_history_includes_command_text(self, tmp_path: Any, capsys: Any) -> None:
+        timestamp = int(datetime.now().timestamp())
+        hist = tmp_path / "bash_history"
+        hist.write_text(f"# {timestamp}\nls -la\n# {timestamp + 100}\ncd /tmp\n")
+        print_history(histfile=str(hist), color=False)
+        output = capsys.readouterr().out
+        assert "ls -la" in output
+        assert "cd /tmp" in output
+        assert output.index("ls -la") < output.index("cd /tmp")
+
     def test_print_history_with_bash_history(self, tmp_path: Any) -> None:
         """Test that print_history correctly processes bash history files."""
         # Create a mock bash history file with a format that matches what the code expects

@@ -56,6 +56,16 @@ done
 printf -v ARGS "write text \"%s\" & " "${arr[@]}"
 ARGS=${ARGS% & }
 
+# Optional QuickDraw bounds (left,top,right,bottom), origin at the top-left
+# of the main screen. Set by restore_projects so a window fills one quadrant.
+BOUNDS_CMD=""
+if [[ -n ${P_WINDOW_BOUNDS:-} ]]; then
+    IFS=',' read -r B_L B_T B_R B_B <<< "$P_WINDOW_BOUNDS"
+    if [[ $B_L =~ ^-?[0-9]+$ && $B_T =~ ^-?[0-9]+$ && $B_R =~ ^-?[0-9]+$ && $B_B =~ ^-?[0-9]+$ ]]; then
+        BOUNDS_CMD="set bounds to {$B_L, $B_T, $B_R, $B_B}"
+    fi
+fi
+
 TARGET_PROFILE="${ITERM_PROFILE:-Default}"
 if ! osascript >/dev/null 2>&1 <<EOF
     tell application "iTerm"
@@ -70,6 +80,7 @@ if ! osascript >/dev/null 2>&1 <<EOF
                 set rows to $Y
                 $ARGS
             end tell
+            $BOUNDS_CMD
         end tell
     end tell
 EOF
@@ -88,6 +99,7 @@ then
                 set rows to $Y
                 $ARGS
             end tell
+            $BOUNDS_CMD
         end tell
     end tell
 EOF

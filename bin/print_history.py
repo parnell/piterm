@@ -2,12 +2,12 @@
 import argparse
 import glob
 import os
+import re
 import sys
-from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 from itertools import chain
-from typing import DefaultDict, Dict, Iterator, List, Optional
+from typing import Iterator, List, Optional, Tuple
 
 
 class HistoryType(Enum):
@@ -34,6 +34,73 @@ class Command:
         self.rtime: str = ""  ## Run time
         self.cmd: str = ""  ## Command
         self.type: HistoryType = HistoryType.unknown
+
+
+# zsh writes a newline inside a history entry as a trailing odd backslash.
+# Pairs of trailing backslashes are a literal backslash.
+_ZSH_ENTRY = re.compile(r"\A: (\d+):(\d+);(.*)\Z", re.DOTALL)
+_BASH_TIMESTAMP = re.compile(r"\A# (\d+)\Z")
+
+
+def _decode_physical_line(line: str) -> Tuple[str, bool]:
+    line = line.rstrip("\r\n")
+    trailing = 0
+    end = len(line)
+    while end > 0 and line[end - 1] == "\\":
+        trailing += 1
+        end -= 1
+    body = line[:end] + ("\\" * (trailing // 2))
+    if trailing % 2 == 1:
+        return body + "\n", True
+    return body, False
+
+
+def parse_history_file(filename: str) -> List[Command]:
+    """Parse a bash or zsh history file in the order the shell loads it."""
+    entries: List[str] = []
+    pending_text = ""
+    with open(filename, encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            text, continues = _decode_physical_line(raw_line)
+            pending_text += text
+            if continues:
+                continue
+            if pending_text != "":
+                entries.append(pending_text)
+            pending_text = ""
+        if pending_text:
+            entries.append(pending_text)
+
+    commands: List[Command] = []
+    pending_bash: Optional[Command] = None
+    for entry in entries:
+        zsh_match = _ZSH_ENTRY.match(entry)
+        bash_match = _BASH_TIMESTAMP.match(entry)
+        if zsh_match:
+            if pending_bash is not None:
+                commands.append(pending_bash)
+                pending_bash = None
+            command = Command()
+            command.etime = datetime.fromtimestamp(int(zsh_match.group(1)))
+            command.rtime = zsh_match.group(2)
+            command.cmd = zsh_match.group(3)
+            command.type = HistoryType.zsh
+            commands.append(command)
+        elif bash_match:
+            if pending_bash is not None:
+                commands.append(pending_bash)
+            pending_bash = Command()
+            pending_bash.etime = datetime.fromtimestamp(int(bash_match.group(1)))
+            pending_bash.type = HistoryType.bash
+            pending_bash.cmd = ""
+        elif pending_bash is not None:
+            if pending_bash.cmd:
+                pending_bash.cmd += "\n" + entry
+            else:
+                pending_bash.cmd = entry
+    if pending_bash is not None:
+        commands.append(pending_bash)
+    return commands
 
 
 def print_history(
@@ -69,55 +136,21 @@ def print_history(
             glob.iglob(os.path.expanduser("~/.history/**"), recursive=True),
         )
 
-    fcmds: Dict[str, DefaultDict[datetime, List[Command]]] = {}
-    count: int = 0
+    # Tab history follows the file, which is the order Up walks.
+    # Merged views sort each file by timestamp.
+    preserve_order = histfile is not None
     for filename in files:
         if os.path.isdir(filename):
             continue
-        cmd_continuation: bool = False
-        cmds: DefaultDict[datetime, List[Command]] = defaultdict(list)
-        fcmds[filename] = cmds
-        cur_cmd: Optional[Command] = None
         try:
-            for line in open(filename, encoding="utf-8", errors="replace"):
-                if not line.strip():
-                    if cur_cmd:  ## Some commands end with a newline after a previous line that ends with \
-                        cur_cmd.cmd += line
-                        cmds[cur_cmd.etime].append(cur_cmd)
-                        cur_cmd = None
-                        cmd_continuation = False
-                    continue
-                # Need a new command
-                if cmd_continuation and cur_cmd is not None:
-                    cur_cmd.cmd += line
-                else:
-                    if line.startswith(": ") or line.startswith("# "):
-                        if cur_cmd:
-                            cmds[cur_cmd.etime].append(cur_cmd)
-                        cur_cmd = Command()
-                        cmd_continuation = False
-                    if line.startswith(": ") and cur_cmd is not None:  # zsh history
-                        s: List[str] = line.strip().split(":", maxsplit=2)
-                        etime: datetime = datetime.fromtimestamp(int(s[1].strip()))
-                        rtime_cmd: List[str] = s[2].split(";", maxsplit=1)
-                        rtime, cmd_str = rtime_cmd[0], rtime_cmd[1]
-                        cur_cmd.rtime = rtime
-                        cur_cmd.cmd = cmd_str
-                        cur_cmd.etime = etime
-                        cur_cmd.type = HistoryType.zsh
-                    elif line.startswith("# ") and cur_cmd is not None:
-                        etime = datetime.fromtimestamp(int(line[1:]))
-                        cur_cmd.cmd = ""
-                        cur_cmd.etime = etime
-                        cur_cmd.type = HistoryType.bash
-                cmd_continuation = line.rstrip().endswith("\\")
-
-            if cur_cmd:
-                cmds[cur_cmd.etime].append(cur_cmd)
+            commands = parse_history_file(filename)
         except Exception as e:
             print(f"Parse Error '{filename}': \n{str(e)}", file=sys.stderr)
             if not ignore_errors:
                 raise
+            commands = []
+        if not preserve_order:
+            commands = sorted(commands, key=lambda command: command.etime)
         if show_filenames:
             try:
                 if color:
@@ -129,19 +162,15 @@ def print_history(
 
         # example hist
         #    1  2018-11-21 15:19:43  history
-        i: int = 1
-        width: int = max(5, len(str(count)))
+        width: int = max(5, len(str(len(commands))))
         fstr: str = "{:%d}  {}\t{}" % width
-        for kt in sorted(cmds.keys()):
-            cmdlist: List[Command] = cmds[kt]
-            for cmd_obj in cmdlist:
-                try:
-                    print(fstr.format(i, kt, cmd_obj.cmd.rstrip()))
-                except BrokenPipeError:
-                    sys.exit(0)
-                except Exception:
-                    print("error on line", i, cmd_obj)
-                i += 1
+        for i, command in enumerate(commands, start=1):
+            try:
+                print(fstr.format(i, command.etime, command.cmd.rstrip()))
+            except BrokenPipeError:
+                sys.exit(0)
+            except Exception:
+                print("error on line", i, command)
 
 
 if __name__ == "__main__":
